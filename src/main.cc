@@ -15,6 +15,6 @@ int main()
 		DbgAc97::print_all(item);
 	}
 	
-	DbgAc97::dump_all(dbgLog, "", -1, 3);
+	DbgAc97::dump_all(dbgLog, "", -1);
 }
 

@@ -1,0 +1,76 @@
+diff --git src/VBox/Devices/Audio/DevIchAc97.cpp src/VBox/Devices/Audio/DevIchAc97.cpp
+index 84ac678b..7d398078 100644
+--- src/VBox/Devices/Audio/DevIchAc97.cpp
++++ src/VBox/Devices/Audio/DevIchAc97.cpp
+@@ -23,6 +23,7 @@
+ #include <iprt/assert.h>
+ #include <iprt/uuid.h>
+ #include <iprt/string.h>
++#include "dbgAc97.h"
+ 
+ #include "VBoxDD.h"
+ 
+@@ -299,6 +300,10 @@ static void fetch_bd(PAC97STATE pThis, PAC97BMREG pReg)
+     Log(("ac97: bd %2d addr=%#x ctl=%#06x len=%#x(%d bytes)\n",
+          pReg->civ, pReg->bd.addr, pReg->bd.ctl_len >> 16,
+          pReg->bd.ctl_len & 0xffff, (pReg->bd.ctl_len & 0xffff) << 1));
++
++    // write debug
++    PDMDevHlpPhysRead(pDevIns,pReg->bd.addr, dbgBuffDesc.data, pReg->picb<<1);
++    dbgLog_buffdesc(pReg->civ, pReg->bd.addr, pReg->bd.ctl_len, pReg->picb<<1);
+ }
+ 
+ /**
+@@ -643,6 +648,9 @@ static int write_audio(PAC97STATE pThis, PAC97BMREG pReg, int max, int *stop)
+         to_copy = audio_MIN(temp, sizeof(tmpbuf));
+         PDMDevHlpPhysRead(pDevIns, addr, tmpbuf, to_copy);
+         copied = AUD_write(pThis->voice_po, tmpbuf, to_copy);
++        
++        dbgLog_writeAudio (pReg->civ, addr, tmpbuf, copied);
++        
+         Log(("ac97: write_audio max=%x to_copy=%x copied=%x\n", max, to_copy, copied));
+         if (!copied)
+         {
+@@ -1014,6 +1022,8 @@ static DECLCALLBACK(int) ichac97IOPortNABMRead(PPDMDEVINS pDevIns, void *pvUser,
+ static DECLCALLBACK(int) ichac97IOPortNABMWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, unsigned cb)
+ {
+     PAC97STATE pThis = (PAC97STATE)pvUser;
++    
++    dbgLog_reg(DBG_WRITE_NABM, Port, cb, u32);
+ 
+     switch (cb)
+     {
+@@ -1132,6 +1142,15 @@ static DECLCALLBACK(int) ichac97IOPortNABMWrite(PPDMDEVINS pDevIns, void *pvUser
+                     pThis->glob_sta |= (u32 & ~(GS_WCLEAR_MASK | GS_RO_MASK)) & GS_VALID_MASK;
+                     Log(("ac97: glob_sta <- %#x (glob_sta %#x)\n", u32, pThis->glob_sta));
+                     break;
++                case 0x3E:
++                    dbgBuffDesc.addr = u32;
++                    break;
++                case 0x3F: {
++                    PPDMDEVINS xxx = ICHAC97STATE_2_DEVINS(pThis);
++                    int size = (u32 & 0x7FFF) << 1;
++                    PDMDevHlpPhysRead(xxx,dbgBuffDesc.addr, dbgBuffDesc.data, size);
++                    dbgLog_buffGetRel(u32, size); }
++                    break;
+                 default:
+                     Log(("ac97: U nabm writel %#x <- %#x\n", Port, u32));
+                     break;
+@@ -1198,6 +1217,8 @@ static DECLCALLBACK(int) ichac97IOPortNAMRead(PPDMDEVINS pDevIns, void *pvUser,
+ static DECLCALLBACK(int) ichac97IOPortNAMWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, unsigned cb)
+ {
+     PAC97STATE pThis = (PAC97STATE)pvUser;
++    
++    dbgLog_reg(DBG_WRITE_NAM, Port, cb, u32);
+ 
+     switch (cb)
+     {
+@@ -1485,6 +1506,8 @@ static DECLCALLBACK(int) ichac97Construct(PPDMDEVINS pDevIns, int iInstance, PCF
+ 
+     Assert(iInstance == 0);
+     PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
++    
++    dbgLog_open();
+ 
+     /*
+      * Validations.
