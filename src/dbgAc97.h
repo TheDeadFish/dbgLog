@@ -23,12 +23,9 @@ int dumpAudio(DbgLog& log, cch* file) {
 	return log.dumpWav(file, DBG_AUDIO, sizeof(DbgAudio)); }
 	
 static
-int dumpDesc(DbgLog& log, cch* file, int type) {
-	return log.dumpWav(file, type, sizeof(DbgBuffDesc)); }
+int dumpDesc(DbgLog& log, cch* file, int type, int flags=0) {
+	return log.dumpWav(file, type, sizeof(DbgBuffDesc), flags); }
 
-static
-int dumpDesc(DbgLog& log, cch* file) {
-	return dumpDesc(log, file, DBG_BUFFDESC); }
   
 static
 DbgRegDef nabm_regs[] = {

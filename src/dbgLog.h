@@ -48,6 +48,7 @@ struct DbgLog
 		void time_print(cch* type);
 		
 		
+		int& addr() { return *(int*)data(); }
 		
 		// register interface
 		void reg_print(DbgRegDef* regs, cch* name);
@@ -63,9 +64,9 @@ struct DbgLog
 	
 	
 
-	void dump(FILE* fp, int type, int offset);
-	int dump(cch* file, int type, int offset);
-	int dumpWav(cch* file, int type, int offset);
+	void dump(FILE* fp, int type, int offset, int flags=0);
+	int dump(cch* file, int type, int offset, int flags=0);
+	int dumpWav(cch* file, int type, int offset, int flags=0);
 	
 	
 	

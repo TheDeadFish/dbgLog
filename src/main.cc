@@ -25,9 +25,10 @@ int main()
 	}
 	
 	
-	DbgAc97::dumpDesc(dbgLog, "desc.wav");
+	DbgAc97::dumpDesc(dbgLog, "desc.wav", DbgAc97::DBG_BUFFDESC);
 	DbgAc97::dumpAudio(dbgLog, "audio.wav");
-	DbgAc97::dumpDesc(dbgLog, "get.wav", DbgAc97::DBG_BUFFGET);
+	DbgAc97::dumpDesc(dbgLog, "get.wav", DbgAc97::DBG_BUFFGET, 1);
+	DbgAc97::dumpDesc(dbgLog, "get2.wav", DbgAc97::DBG_BUFFGET, 2);
 	DbgAc97::dumpDesc(dbgLog, "rel.wav", DbgAc97::DBG_BUFFREL);
 
 }

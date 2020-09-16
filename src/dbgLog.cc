@@ -42,29 +42,46 @@ void DbgLog::init(int shift, __int64 rate)
 	timeScale = (1LL << shift) / double(rate);
 }
 
-void DbgLog::dump(FILE* fp, int type, int offset)
+void DbgLog::dump(FILE* fp, int type, int offset, int flags)
 {
 	for(auto* item : items) {
 		if(item->type != type) continue;
 		int size = item->size_-offset;
 		if(size < 0) break;
+		char* data = item->data()+offset;
+		
+		// boundary checks
+		if(flags & 3) {
+			
+		
+		
+		
+			unsigned page = ALIGN_PAGE(item->addr());
+			unsigned end = item->addr() + size;
+			if(page > end) page = end;
+			
+			if(flags & 1) { end = page; }
+			if(flags & 2) { item->addr() = page; }
+			size = end-item->addr();
+		}
+		
 		fwrite(item->data()+offset, 1, size, fp);
 	}
 }
 
-int DbgLog::dump(cch* file, int type, int offset)
+int DbgLog::dump(cch* file, int type, int offset, int flags)
 {
 	FILE* fp = fopen(file, "wb");
 	if(!fp) return errno;
-	dump(fp, type, offset);
+	dump(fp, type, offset, flags);
 	fclose(fp); return 0;
 }
 
-int DbgLog::dumpWav(cch* file, int type, int offset)
+int DbgLog::dumpWav(cch* file, int type, int offset, int flags)
 {
 	WavWrite ww;
 	IFRET(ww.open(file));
-	dump(ww.fp, type, offset);
+	dump(ww.fp, type, offset, flags);
 	return ww.close(48000, 2, 16);
 }
 
