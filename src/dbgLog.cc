@@ -2,32 +2,27 @@
 #include "dbgLog.h"
 #include "wavWrite.h"
 
-#pragma pack(push, 1)
-struct DbgHead { unsigned int time;
-	unsigned short size; };
-#pragma pack(pop)
-
 int DbgLog::load(cch* file)
 {
 	FILE* fp = fopen(file, "rb");
 	if(!fp) return errno;
 	
-	DbgHead head;
+	DbgLog_Head head;
 	__int64 timePos = 0;
 	unsigned lastTime = 0xFFFFFFFF;
 	
-	while(fread(&head, sizeof(DbgHead), 1, fp))
+	while(fread(&head, sizeof(head), 1, fp))
 	{
-		int offset = ftell(fp);
-			ItemHead* item = (ItemHead*)xmalloc(sizeof(ItemHead)+head.size);
+		int size = head.getSize()-sizeof(head);
+		ItemHead* item = (ItemHead*)xmalloc(sizeof(ItemHead)+size);
 		items.push_back(item);
 		
-		if(!fread(item+1, head.size, 1, fp)) break;
-		item->type = head.time & 0x000000FF;
-		item->size_ = head.size;
+		if(!fread(item+1, size, 1, fp)) break;
+		item->type = head.getType();
+		item->size_ = size;
 		
 		// handle the time
-		unsigned curTime = head.time & 0xFFFFFF00;
+		unsigned curTime = head.time;
 		if(lastTime == 0xFFFFFFFF) lastTime = curTime;
 		timePos += curTime-lastTime; lastTime = curTime;
 		item->time = timePos * timeScale;

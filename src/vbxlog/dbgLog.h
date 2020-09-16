@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <conio.h>
+#include "../common.h"
 
 //extern "C"
 //void __stdcall AllocConsole();
@@ -17,8 +18,8 @@ static void dbgLog_open() { if(fpDump) fclose(fpDump);
 static void dbgLog_write_(void* data, int len) { fwrite(data, 1, len, fpDump); }
 
 #pragma pack(push, 1)
-struct DbgHead { unsigned int time; unsigned short size; };
-struct DbgReg : DbgHead { char port; int data; };
+typedef DbgLog_Head DbgHead;
+struct DbgReg : DbgLog_Head, DbgLog_Reg {};
 template <int n>
 struct DbgRaw : DbgHead { char data[n]; };
 #pragma pack(pop)
@@ -26,16 +27,16 @@ struct DbgRaw : DbgHead { char data[n]; };
 
 static void dbgLog_head(DbgHead* head, int type, int size)
 {
-	head->time = type | ((__rdtsc() >> 10) & 0xFFFFFF00);
-    head->size = size;
+  head->time = __rdtsc() >> 10;
+  head->init(type, size);
 }
 
 template <class T>
 static void dbgLog_write(T& head, int type, int size)
 {
-    size += offsetof(T, data)-sizeof(DbgHead);
+    size += offsetof(T, data);
     dbgLog_head(&head, type, size);
-    dbgLog_write_(&head, size+sizeof(DbgHead));
+    dbgLog_write_(&head, size);
 }
 
 static void dbgLog_reg(int type, int port, int size, int data) {
@@ -43,6 +44,7 @@ static void dbgLog_reg(int type, int port, int size, int data) {
     dbgLog_write(reg, type, size);
 }
 
+#if 0
 static void dbgLog_msg(const char* fmt, ...)
 {
 	DbgRaw<2048> msg;
@@ -50,12 +52,12 @@ static void dbgLog_msg(const char* fmt, ...)
     int len = vsprintf (msg.data,fmt, args);
 	dbgLog_write(msg, 255, len);
 }
-
+#endif
 
 template <class T>
 static void dbgLog_write(T& head, int type, void* data, int size)
 {
-    dbgLog_head(&head, type, sizeof(head)-sizeof(DbgHead)+size);
+    dbgLog_head(&head, type, sizeof(head)+size);
     dbgLog_write_(&head, sizeof(head));
     dbgLog_write_(data, size);
 }

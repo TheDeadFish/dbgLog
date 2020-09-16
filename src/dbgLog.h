@@ -1,4 +1,5 @@
 #pragma once
+#include "common.h"
 
 struct DbgRegDef {
 	int base, size; cch *name, *desc;
@@ -12,11 +13,7 @@ struct DbgRegDef {
 
 struct DbgLog
 {
-
-		
-	#pragma pack(push, 1)
-		struct RegItem { char port; int data; };
-	#pragma pack(pop)
+	typedef DbgLog_Reg RegItem;
 
 	static int varData(void* data, unsigned len);
 	static cch* varDataName(unsigned len);
