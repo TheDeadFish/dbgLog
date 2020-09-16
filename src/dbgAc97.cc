@@ -72,18 +72,61 @@ int dumpDesc(DbgLog& log, cch* file, int type, int flags) {
 	
 	
 void print_audio(DbgLog::ItemHead* item) {
-	item->time_print("audioWrite");
+	item->time_print("audio_Write");
 	printf("%02X, %08X, %5d\n", 
 			item->get<DbgAudio>().civ, item->get<DbgAudio>().addr, 
 		item->size<DbgAudio>());	
 }
 
-void print_buffDesc(DbgLog::ItemHead* item) {
-	item->time_print("buffDescri");
+void print_buffDesc(DbgLog::ItemHead* item, cch* name) {
+	item->time_print(name);
 	printf("%02X, %08X, %5d, %04X \n",
 		item->get<DbgBuffDesc>().civ, item->get<DbgBuffDesc>().addr,
 		item->size<DbgBuffDesc>(), item->get<DbgBuffDesc>().ctl_len >> 16 
 	);
+}
+
+void print_all(DbgLog::ItemHead* item, int mask)
+{
+	if(!_BTST(mask, item->type)) return;
+
+	switch(item->type) {
+	case DBG_WRITE_NABM:
+		item->reg_print(nabm_regs, "NABM"); break;
+	case DBG_WRITE_NAM:
+		item->reg_print(nam_regs, "NAM"); break;
+	case DBG_AUDIO:
+		print_audio(item); break;
+	case DBG_BUFFDESC:
+		print_buffDesc(item, "buff_Descri"); break;
+	case DBG_BUFFGET:
+		print_buffDesc(item, "buff_get   "); break;	
+	case DBG_BUFFREL:
+		print_buffDesc(item, "buff_rel   "); break;
+	}
+}
+
+static 
+void dump_xxx(DbgLog& log, cch* path, cch* name, int type, int page)
+{
+	xstr buff = pathCat(path, name);
+		
+	if(!page || (page & 4)) 
+		dumpDesc(log, buff, type, 0);
+	if(page & 1) dumpDesc(log, buff, type, 1);
+	if(page & 2) dumpDesc(log, buff, type, 2);
+}
+
+void dump_all(DbgLog& log, cch* path, int mask, int page)
+{
+	if(_BTST(mask, DBG_AUDIO))
+		dumpAudio(log, xstr(pathCat(path, "audio.wav")));
+	if(_BTST(mask, DBG_BUFFDESC))
+		dump_xxx(log, path, "desc.wav", DBG_BUFFDESC, page);
+	if(_BTST(mask, DBG_BUFFGET))
+		dump_xxx(log, path, "get.wav", DBG_BUFFGET, page);
+	if(_BTST(mask, DBG_BUFFREL))
+		dump_xxx(log, path, "rel.wav", DBG_BUFFREL, page);
 }
 
 }

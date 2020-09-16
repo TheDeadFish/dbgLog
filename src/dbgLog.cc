@@ -69,9 +69,19 @@ void DbgLog::dump(FILE* fp, int type, int offset, int flags)
 	}
 }
 
+static
+char* fix_name(cch* name, int flags)
+{
+	if(flags == 0) return xstrdup(name);
+	cch* ext = getExt(name);
+	return xstrfmt("%v%c%s", cstr(name, ext),
+		flags & 1 ? 'O' : 'X', ext);
+}
+
 int DbgLog::dump(cch* file, int type, int offset, int flags)
 {
-	FILE* fp = fopen(file, "wb");
+	
+	FILE* fp = fopen(xstr(fix_name(file, flags)), "wb");
 	if(!fp) return errno;
 	dump(fp, type, offset, flags);
 	fclose(fp); return 0;
@@ -80,7 +90,7 @@ int DbgLog::dump(cch* file, int type, int offset, int flags)
 int DbgLog::dumpWav(cch* file, int type, int offset, int flags)
 {
 	WavWrite ww;
-	IFRET(ww.open(file));
+	IFRET(ww.open(xstr(fix_name(file, flags))));
 	dump(ww.fp, type, offset, flags);
 	return ww.close(48000, 2, 16);
 }

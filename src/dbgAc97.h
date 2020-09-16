@@ -24,7 +24,8 @@ int dumpDesc(DbgLog& log, cch* file, int type, int flags=0);
 extern DbgRegDef nabm_regs[];
 extern DbgRegDef nam_regs[];
 
-void print_audio(DbgLog::ItemHead* item);
-void print_buffDesc(DbgLog::ItemHead* item);
+void print_all(DbgLog::ItemHead* item, int mask=-1);
+void dump_all(DbgLog& log, cch* path, int mask=-1, int page=0);
+
 
 }
