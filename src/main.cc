@@ -1,12 +1,15 @@
 #include "stdshit.h"
+#include "cfgFile.h"
 #include "dbgAc97.h"
 
 const char progName[] = "test";
 
-int main()
+int main(int argc, char** argv)
 {
+	cfgFile_load();
+
 	DbgLog dbgLog;
-	dbgLog.init(10, 3060000000);
+	dbgLog.init(cfg.shift, cfg.rdtsc);
 	int ec = dbgLog.load("dbgLog.bin");
 	if(ec) { printf("%d\n", ec); return ec; }
 	
