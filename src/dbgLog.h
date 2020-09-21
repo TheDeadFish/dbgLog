@@ -39,13 +39,14 @@ struct DbgLog
 		TMPL(T) int size() { return size_-sizeof(T); }
 			
 		TMPL(T) T& get() { return *(T*)(this+1); }
-		char* data() { return (char*)(this+1); }
-		
+		char* data_() { return (char*)(this+1); }
+		TMPL(T) char* data() { return data_() + sizeof(T); }
+		char* end() { return data_() + size_; }
 		
 		void time_print(cch* type);
 		
 		
-		int& addr() { return *(int*)data(); }
+		int& addr() { return *(int*)data_(); }
 		
 		// register interface
 		void reg_print(DbgRegDef* regs, cch* name);
@@ -74,6 +75,8 @@ struct DbgLog
 	
 private:
 	double timeScale;
+	
+	struct Parse;
 
 	//double getTime(int time);
 };

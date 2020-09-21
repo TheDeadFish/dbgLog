@@ -1,5 +1,5 @@
 diff --git src/VBox/Devices/Audio/DevIchAc97.cpp src/VBox/Devices/Audio/DevIchAc97.cpp
-index 84ac678b..7d398078 100644
+index 84ac678b..2d5cde9b 100644
 --- src/VBox/Devices/Audio/DevIchAc97.cpp
 +++ src/VBox/Devices/Audio/DevIchAc97.cpp
 @@ -23,6 +23,7 @@
@@ -56,16 +56,61 @@ index 84ac678b..7d398078 100644
                  default:
                      Log(("ac97: U nabm writel %#x <- %#x\n", Port, u32));
                      break;
-@@ -1198,6 +1217,8 @@ static DECLCALLBACK(int) ichac97IOPortNAMRead(PPDMDEVINS pDevIns, void *pvUser,
+@@ -1152,6 +1171,15 @@ static DECLCALLBACK(int) ichac97IOPortNABMWrite(PPDMDEVINS pDevIns, void *pvUser
+ static DECLCALLBACK(int) ichac97IOPortNAMRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t *pu32, unsigned cb)
+ {
+     PAC97STATE pThis = (PAC97STATE)pvUser;
++    
++    uint32_t index = Port - pThis->IOPortBase[0];
++    
++    // allocate debug event
++    if(index == 0xFF) {
++        int hItem = dbgLog_itemBegin(128, 254);
++        *pu32 = pThis->IOPortBase[0]+hItem;
++        return VINF_SUCCESS;
++    }
+ 
+     switch (cb)
+     {
+@@ -1165,7 +1193,6 @@ static DECLCALLBACK(int) ichac97IOPortNAMRead(PPDMDEVINS pDevIns, void *pvUser,
+ 
+         case 2:
+         {
+-            uint32_t index = Port - pThis->IOPortBase[0];
+             *pu32 = ~0U;
+             pThis->cas = 0;
+             switch (index)
+@@ -1198,6 +1225,20 @@ static DECLCALLBACK(int) ichac97IOPortNAMRead(PPDMDEVINS pDevIns, void *pvUser,
  static DECLCALLBACK(int) ichac97IOPortNAMWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, unsigned cb)
  {
      PAC97STATE pThis = (PAC97STATE)pvUser;
++    
++    uint32_t index = Port - pThis->IOPortBase[0];
++    
++    if(index >= 128) {
++        if(index == 0xFF) {
++            int hItem = (u32>>16) - pThis->IOPortBase[0];
++            dbgLog_itemEnd(hItem, u32&0xFFFF);
++        } else {
++            dbgLog_itemWrite(index, &u32, cb);
++        }
++        return VINF_SUCCESS;
++    }
 +    
 +    dbgLog_reg(DBG_WRITE_NAM, Port, cb, u32);
  
      switch (cb)
      {
-@@ -1485,6 +1506,8 @@ static DECLCALLBACK(int) ichac97Construct(PPDMDEVINS pDevIns, int iInstance, PCF
+@@ -1210,7 +1251,7 @@ static DECLCALLBACK(int) ichac97IOPortNAMWrite(PPDMDEVINS pDevIns, void *pvUser,
+ 
+         case 2:
+         {
+-            uint32_t index = Port - pThis->IOPortBase[0];
++            
+             pThis->cas = 0;
+             switch (index)
+             {
+@@ -1485,6 +1526,8 @@ static DECLCALLBACK(int) ichac97Construct(PPDMDEVINS pDevIns, int iInstance, PCF
  
      Assert(iInstance == 0);
      PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);

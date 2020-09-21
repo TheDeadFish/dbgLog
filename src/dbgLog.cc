@@ -1,35 +1,62 @@
 #include "stdshit.h"
 #include "dbgLog.h"
 #include "wavWrite.h"
+#include "stuff.h"
 
 int DbgLog::load(cch* file)
 {
-	FILE* fp = fopen(file, "rb");
+	xFile fp(file, "rb");
 	if(!fp) return errno;
+	xMem<int> iItems(xMalloc(256));
+	memset(iItems, -1, 256*4);
+	
+	#define ERRET { IFRET(ferror(fp)); return -1; }
 	
 	DbgLog_Head head;
+	DbgLog_Chunk chunk;
 	__int64 timePos = 0;
 	unsigned lastTime = 0xFFFFFFFF;
-	
-	while(fread(&head, sizeof(head), 1, fp))
+	ItemHead* item;
+
+	while(fp.read(&head, sizeof(head)))
 	{
 		int size = head.getSize()-sizeof(head);
-		ItemHead* item = (ItemHead*)xmalloc(sizeof(ItemHead)+size);
+
+		if(head.getType() == 0xFF) 
+		{
+			// read chunk		
+			if(!fp.read(&chunk, sizeof(chunk))) ERRET;
+			size -= sizeof(chunk);
+			head.init(chunk.tItem, 0);
+			
+			int& iItem = iItems[chunk.hItem];
+			if(iItem < 0) { 
+				if(chunk.tItem == 0xFF) iItem = items.size();
+			} else { 
+				int newSize = sizeof(ItemHead)+items[iItem]->size_+size;
+				item = xrealloc(items[iItem], newSize);
+				if(chunk.tItem != 0xFF) iItem = -1;
+				goto APPEND_ITEM;
+			}
+		}
+		
+		// create new item
+		item = (ItemHead*)xcalloc(sizeof(ItemHead)+size);
 		items.push_back(item);
 		
-		if(!fread(item+1, size, 1, fp)) break;
-		item->type = head.getType();
-		item->size_ = size;
-		
 		// handle the time
-		unsigned curTime = head.time;
+		{ unsigned curTime = head.time;
 		if(lastTime == 0xFFFFFFFF) lastTime = curTime;
 		timePos += curTime-lastTime; lastTime = curTime;
-		item->time = timePos * timeScale;
-	}
+		item->time = timePos * timeScale; }
 	
-	int err = ferror(fp);
-	fclose(fp); return 0;
+APPEND_ITEM:
+		if(size && !fp.read(item->end(), size)) ERRET;
+		item->type = head.getType();
+		item->size_ += size;
+	}
+
+	return ferror(fp);
 }
 
 void DbgLog::init(int shift, __int64 rate)
@@ -43,7 +70,7 @@ void DbgLog::dump(FILE* fp, int type, int offset, int flags)
 		if(item->type != type) continue;
 		int size = item->size_-offset;
 		if(size < 0) break;
-		char* data = item->data()+offset;
+		char* data = item->data_()+offset;
 		
 		// boundary checks
 		if(flags & 3) {
@@ -60,7 +87,7 @@ void DbgLog::dump(FILE* fp, int type, int offset, int flags)
 			size = end-item->addr();
 		}
 		
-		fwrite(item->data()+offset, 1, size, fp);
+		fwrite(item->data_()+offset, 1, size, fp);
 	}
 }
 

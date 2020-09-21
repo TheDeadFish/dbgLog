@@ -14,4 +14,9 @@ struct DbgLog_Head { unsigned size, time;
 
 struct DbgLog_Reg { char port; int data; };
 
+struct DbgLog_Chunk { 
+	unsigned char hItem;
+	unsigned char tItem;
+};
+
 #pragma pack(pop)
